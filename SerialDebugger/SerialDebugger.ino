@@ -12,6 +12,8 @@
 int testiterator = 0;
 int testarray[4] = {0, 1, 2, 3};
 float testarray2[4] = {0, 1, 2, 3};
+unsigned long testreg = 0x01;
+byte testreg2 = 0x31;
 
 void setup()
 {
@@ -22,7 +24,9 @@ void loop()
 {
     testiterator += 1;
     log_variable("testiterator", testiterator);
-    log_variable("testarray", testarray, 4);
-    log_variable("testarray", testarray2, 4);
+    log_array("testarray", testarray, 4);
+    log_array("testarray2", testarray2, 4);
+    log_register("testreg", testreg);
+    log_register("testreg2", testreg2);
     breakpoint(1);
 }
