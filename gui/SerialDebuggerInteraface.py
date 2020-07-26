@@ -1,5 +1,7 @@
 import sys
+import re
 
+import numpy as np
 from serial import Serial
 from serial.tools import list_ports
 from PyQt5.QtWidgets import QApplication, QMainWindow, QComboBox, QPushButton, QStatusBar, QScrollArea, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame, QCheckBox
@@ -14,10 +16,21 @@ class QVLine(QFrame):
     def __init__(self):
         super().__init__()
         self.setFrameShape(QFrame.VLine)
-        self.setFrameShadow(QFrame.Sunken)
+
+
+class QHLine(QFrame):
+
+    def __init__(self):
+        super().__init__()
+        self.setFrameShape(QFrame.HLine)
 
 
 class VariableView(QFrame):
+    """Class to store and show a logged variable"""
+
+    REPLOT_RATE = 200
+    PLOT_LENGTH = 1000
+    PLOT_ONLY_LATEST = True
 
     def __init__(self, name="default"):
         super().__init__()
@@ -30,6 +43,7 @@ class VariableView(QFrame):
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.canvas.maximumHeight = 100
         self.canvas.maximumWidth = 200
+        self.ax = None
         layout.addWidget(self.lbl_name)
         layout.addWidget(QVLine())
         layout.addWidget(self.lbl_value)
@@ -41,6 +55,10 @@ class VariableView(QFrame):
         layout.addWidget(btn)
         self.setLayout(layout)
         self.set_variable_name(name)
+        # use timer to replot data
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.plot)
+        self.timer.start(VariableView.REPLOT_RATE)
 
     def set_variable_name(self, name):
         self._variable_name = name
@@ -49,25 +67,37 @@ class VariableView(QFrame):
     def add_variable_value(self, value):
         self._variable_values.append(value)
         self.lbl_value.setText(str(value))
-        self.plot()
 
     def reset(self):
         self._variable_values = []
         self.lbl_value.setText("")
-        self.plot()
 
     def plot(self):
         """Plot variable values in canvas"""
-        ax = self.figure.add_subplot(111)
-        ax.clear()
-        ax.plot(self._variable_values)
-        self.canvas.draw()
+        if (len(self._variable_values) != 0) and (type(self._variable_values[0]) in [int, float]):
+            if not self.ax:
+                self.ax = self.figure.add_subplot(111)
+            self.ax.clear()
+            data = np.array(self._variable_values)
+            # Decide on plotting type
+            if len(data) > VariableView.PLOT_LENGTH:
+                if VariableView.PLOT_ONLY_LATEST:
+                    data = data[-VariableView.PLOT_LENGTH:]
+                else:
+                    # Optimization to limit amount of data to be plotted
+                    data = data[np.linspace(0, len(data)-1, VariableView.PLOT_LENGTH, dtype=np.int)]
+            self.ax.plot(data)
+            self.canvas.show()
+            self.canvas.draw()
+        else:
+            self.canvas.hide()
+        self.timer.start(VariableView.REPLOT_RATE)
 
 
 class App(QMainWindow):
 
     BAUDRATES = ["9600", "19200", "38400", "57600", "74880", "115200", "230400", "250000", "500000", "1000000", "2000000"]
-    SERIAL_UPDATE_RATE = 10
+    SERIAL_UPDATE_RATE = 100
 
     def __init__(self):
         super().__init__()
@@ -95,7 +125,6 @@ class App(QMainWindow):
         self.lbl_breakpoint = self.findChild(QLabel, "lbl_breakpoint")
         self.list_ports()
         self.show()
-
         # use timer for serial monitoring
         self.timer = QTimer()
         self.timer.timeout.connect(self.check_serial)
@@ -138,6 +167,19 @@ class App(QMainWindow):
 
     def check_serial(self):
         """Check serial port for new data."""
+        def evaluate_list(data):
+            str2 = re.sub("[^\d_,.]", "", data)
+            ret = []
+            for x in str2.split(","):
+                if x != "":
+                    if "." in x:
+                        ret.append(float(x))
+                    else:
+                        ret.append(int(x))
+                else:
+                    ret.append(0)
+            return ret if len(ret)>1 else ret[0]
+            
         if not self.serial: 
             self.statusbar.showMessage("Serial not initialized")
         else:
@@ -153,7 +195,6 @@ class App(QMainWindow):
                     else:
                         self.line_buffer = ""
                 except Exception as e:
-                    print("error decoding message " + str(e))
                     return
                 for line in lines:
                     parts = line.split(" ")
@@ -166,7 +207,13 @@ class App(QMainWindow):
                                 self.lbl_breakpoint.setText("Breakpoint " + str(parts[2]))
                         elif parts[1] == "variable":
                             name = parts[2]
-                            val = eval(parts[3])
+                            try:
+                                val = evaluate_list(parts[3])
+                            except Exception as e:
+                                print(e)
+                                print("---", line)
+                                print("---", parts)
+                                return
                             self.update_variable(name, val)
                         else:
                             print("Unknown log encountered: " + line)

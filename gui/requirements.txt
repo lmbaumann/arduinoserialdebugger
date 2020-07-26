@@ -1,0 +1,4 @@
+numpy
+matplotlib
+pyserial
+pyqt>=5.0.0
