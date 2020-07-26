@@ -1,3 +1,6 @@
+# SerialDebuggerInterface.py - Small GUI to view logged variables and skip over breakpoints.
+# Created by Luca Baumann, 2020
+
 import sys
 import re
 
@@ -28,9 +31,9 @@ class QHLine(QFrame):
 class VariableView(QFrame):
     """Class to store and show a logged variable"""
 
-    REPLOT_RATE = 200
-    PLOT_LENGTH = 1000
-    PLOT_ONLY_LATEST = True
+    REPLOT_RATE = 200           # update rate for plots in ms
+    PLOT_LENGTH = 2000          # maximum numer of points to plot
+    PLOT_ONLY_LATEST = False    # only plot latest values
 
     def __init__(self, name="default"):
         super().__init__()
@@ -168,7 +171,7 @@ class App(QMainWindow):
     def check_serial(self):
         """Check serial port for new data."""
         def evaluate_list(data):
-            str2 = re.sub("[^\d_,.]", "", data)
+            str2 = re.sub(r"[^\d_,.]", "", data)
             ret = []
             for x in str2.split(","):
                 if x != "":

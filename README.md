@@ -5,3 +5,5 @@ Small library for Arduino debugging over serial port. Features:
 - logging: logging of simple strings, variables and arrays
 
 SerialDebugger.ino contains sample usage.
+
+gui/SerialDebuggerInterface.py contains a QT GUI to visualize logged variables and skip over breakpoints. 
