@@ -9,7 +9,7 @@
 
 
 // small enum to store data types
-enum DebuggerVartype{t_int, t_uint, t_long, t_ulong, t_float, t_char, t_byte};
+enum DebuggerVartype{t_int, t_uint, t_long, t_ulong, t_float, t_double, t_char, t_byte};
 
 
 void breakpoint()
@@ -61,6 +61,10 @@ void log_variable(String name, float variable)
 {
     log(String("variable ") + name + String(" ") + String(variable, DEBUGGER_FLOAT_DECIMALS));
 }
+void log_variable(String name, double variable)
+{
+    log(String("variable ") + name + String(" ") + String(variable, DEBUGGER_FLOAT_DECIMALS));
+}
 
 /**
  * Helper funktion for some data conversion
@@ -79,6 +83,8 @@ String to_string(byte* data, DebuggerVartype type)
         return String((unsigned long) *(unsigned long*)data);
     case DebuggerVartype::t_float:
         return String((float) *(float*)data, DEBUGGER_FLOAT_DECIMALS);
+    case DebuggerVartype::t_double:
+        return String((double) *(double*)data, DEBUGGER_FLOAT_DECIMALS);
     case DebuggerVartype::t_char:
         return String((char) *(char*)data);
     case DebuggerVartype::t_byte:
@@ -119,6 +125,10 @@ void log_array(String name, unsigned long* variable, int len)
 void log_array(String name, float* variable, int len)
 {
     log_array(name, (byte*)variable, len, DebuggerVartype::t_float, sizeof(float));
+}
+void log_array(String name, double* variable, int len)
+{
+    log_array(name, (byte*)variable, len, DebuggerVartype::t_double, sizeof(double));
 }
 void log_array(String name, char* variable, int len)
 {
