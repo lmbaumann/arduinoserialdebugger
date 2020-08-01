@@ -34,6 +34,7 @@ void log_variable(String name, char variable);
 void log_variable(String name, int variable);
 void log_variable(String name, long variable);
 void log_variable(String name, float variable);
+void log_variable(String name, double variable);
 
 /**
  * Log an array.
@@ -46,6 +47,7 @@ void log_array(String name, unsigned int* variable, int len);
 void log_array(String name, long* variable, int len);
 void log_array(String name, unsigned long* variable, int len);
 void log_array(String name, float* variable, int len);
+void log_array(String name, double* variable, int len);
 void log_array(String name, char* variable, int len);
 
 /**
