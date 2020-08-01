@@ -8,7 +8,7 @@ from datetime import datetime
 import numpy as np
 from serial import Serial
 from serial.tools import list_ports
-from PyQt5.QtWidgets import QApplication, QMainWindow, QComboBox, QPushButton, QStatusBar, QScrollArea, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame, QCheckBox, QFileDialog, QErrorMessage
+from PyQt5.QtWidgets import QApplication, QMainWindow, QComboBox, QPushButton, QStatusBar, QScrollArea, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame, QCheckBox, QFileDialog, QErrorMessage, QLineEdit
 from PyQt5 import uic
 from PyQt5.QtCore import QTimer
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
@@ -33,8 +33,6 @@ class VariableView(QFrame):
     """Class to store and show a logged variable"""
 
     REPLOT_RATE = 200           # update rate for plots in ms
-    PLOT_LENGTH = 2000          # maximum numer of points to plot
-    PLOT_ONLY_LATEST = False    # only plot latest values
 
     def __init__(self, name="default"):
         super().__init__()
@@ -43,6 +41,8 @@ class VariableView(QFrame):
         self._variable_values = []
         self._variable_min = None
         self._variable_max = None
+        self._plot_length = 2000
+        self._plot_only_latest = False
         self._btn_pause_resume = QPushButton()
         layout = QHBoxLayout()
         self.lbl_name = QLabel()
@@ -80,8 +80,24 @@ class VariableView(QFrame):
         btn = QPushButton("Export...")
         btn.clicked.connect(self.export)
         layout.addWidget(btn)
+        f = QFrame()
+        layout.addWidget(f)
+        l = QHBoxLayout()
+        f.setLayout(l)
+        l.addWidget(QLabel("Plot values:"))
+        self.tb_plot_values = QLineEdit(str(self._plot_length))
+        self.tb_plot_values.textChanged.connect(self._plot_values)
+        l.addWidget(self.tb_plot_values)
         layout.addStretch()
         return frame
+
+    def _plot_values(self):
+        try:
+            val = int(self.tb_plot_values.text())
+            if val > 0:
+                self._plot_length = val
+        except:
+            pass
 
     def _pause_resume(self):
         self._pause = not self._pause
@@ -149,12 +165,12 @@ class VariableView(QFrame):
             self.ax.clear()
             data = np.array(self._variable_values)
             # Decide on plotting type
-            if len(data) > VariableView.PLOT_LENGTH:
-                if VariableView.PLOT_ONLY_LATEST:
-                    data = data[-VariableView.PLOT_LENGTH:]
+            if len(data) > self._plot_length:
+                if self._plot_only_latest:
+                    data = data[-self._plot_length:]
                 else:
                     # Optimization to limit amount of data to be plotted
-                    data = data[np.linspace(0, len(data)-1, VariableView.PLOT_LENGTH, dtype=np.int)]
+                    data = data[np.linspace(0, len(data)-1, self._plot_length, dtype=np.int)]
             self.ax.plot(data)
             self.canvas.show()
             self.canvas.draw()
