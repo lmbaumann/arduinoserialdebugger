@@ -71,6 +71,7 @@ class VariableView(QFrame):
         layout = QVBoxLayout()
         layout.addStretch()
         frame.setLayout(layout)
+        # buttons
         btn = QPushButton("Reset")
         btn.clicked.connect(self.reset)
         layout.addWidget(btn)
@@ -80,6 +81,16 @@ class VariableView(QFrame):
         btn = QPushButton("Export...")
         btn.clicked.connect(self.export)
         layout.addWidget(btn)
+        # create setting for plotting
+        self._plotting_settings = self._create_plotting_settings()
+        layout.addWidget(self._plotting_settings)
+        layout.addStretch()
+        return frame
+
+    def _create_plotting_settings(self):
+        frame = QFrame()
+        layout = QVBoxLayout()
+        frame.setLayout(layout)
         f = QFrame()
         layout.addWidget(f)
         l = QHBoxLayout()
@@ -88,8 +99,13 @@ class VariableView(QFrame):
         self.tb_plot_values = QLineEdit(str(self._plot_length))
         self.tb_plot_values.textChanged.connect(self._plot_values)
         l.addWidget(self.tb_plot_values)
-        layout.addStretch()
+        self.cb_plot_latest = QCheckBox("Plot latest only")
+        self.cb_plot_latest.stateChanged.connect(self._plot_latest)
+        layout.addWidget(self.cb_plot_latest)
         return frame
+
+    def _plot_latest(self):
+        self._plot_only_latest = self.cb_plot_latest.isChecked()
 
     def _plot_values(self):
         try:
@@ -108,7 +124,6 @@ class VariableView(QFrame):
 
     def _export(self, filepath):
         with open(filepath, "w") as f:
-            f.write("value\n")
             for line in self._variable_values:
                 if type(line) == list:
                     ret = ""
@@ -138,6 +153,8 @@ class VariableView(QFrame):
             return
         self._variable_values.append(value)
         if type(value) == int or type(value) == float:
+            # variable is plottable
+            self._plotting_settings.show()
             if self._variable_min == None:
                 self._variable_min = value
             else:
@@ -150,6 +167,8 @@ class VariableView(QFrame):
                     self._variable_max = value
             self.lbl_value.setText("min: " + str(self._variable_min) + "\ncurrent: " + str(value) + "\nmax: " + str(self._variable_max))
         else:
+            # do not plot array type variables
+            self._plotting_settings.hide()
             self.lbl_value.setText(str(value))
 
     def reset(self):
